@@ -30,12 +30,15 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "express": "^5.1.0"
+    "@xyflow/react": "^12",
+    "express": "^5.1.0",
+    "js-yaml": "^4"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
     "@react-three/fiber": "^9.8.1",
     "@types/express": "^5.0.3",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.6.0",
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.1.9",

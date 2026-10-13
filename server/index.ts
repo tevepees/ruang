@@ -8,6 +8,7 @@ import { redactActivity, redactCalendar, redactDashboard, redactLogs, redactMemo
 import { installProfileLock, isHidden, type Privacy } from './profile-lock.js'
 import { API_VERSION } from './api-version.js'
 import { collectMemory } from './memory.js'
+import { getOrgFlow } from './orgflow.js'
 import { getActivity, getCalendar, getChannels, getCommandLog, getDashboard, getKnowledge, getLogs, getOffice, getSnapshot, getTaskBoard, getTaskDetail, getUsage } from './mission-control.js'
 
 const HOST = '127.0.0.1'
@@ -46,6 +47,7 @@ const routes: Record<string, (now: number, privacy: Privacy) => Promise<unknown>
   '/api/channels': getChannels,
   '/api/logs': async (now, privacy) => redactLogs(await getLogs(now), privacy),
   '/api/command-log': () => getCommandLog(),
+  '/api/orgflow': getOrgFlow,
 }
 for (const [path, handler] of Object.entries(routes)) {
   app.get(path, async (request, response) => {
