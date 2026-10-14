@@ -2,7 +2,7 @@ import { createElement } from 'react'
 import { renderToString } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { buildOrgFlow } from '../server/orgflow.ts'
-import { OrgFlow } from './pages/OrgFlow.tsx'
+import { OrgFlow, OrgFlowView } from './pages/OrgFlow.tsx'
 
 describe('OrgFlow server-render smoke test', () => {
   it('renders initial loading shell without throw', () => {
@@ -25,5 +25,13 @@ describe('OrgFlow server-render smoke test', () => {
     expect(buNarti.nama).toBe('Bu Narti')
     expect(buNarti.uang).toBe(true)
     expect(buNarti.serah.some((s) => s.ke === 'general-manager')).toBe(true)
+  })
+
+  it('Agent & Cron tab lists every role, all cron jobs and roles without cron', () => {
+    const data = JSON.parse(JSON.stringify(buildOrgFlow()))
+    const html = renderToString(createElement(OrgFlowView, { data, title: null, snapshot: { status: 'ready', data, refresh: () => {} } as never, tab: 'Agent & Cron', setTab: () => {}, filters: { meja: 'all', uang: false, tony: false, status: 'all' }, setFilters: () => {}, byMeja: false, setByMeja: () => {}, setOpenRole: () => {} })).replaceAll('<!-- -->', '')
+    expect(html).toContain('Role tanpa cron')
+    expect(html).toContain(`Semua cron job (${data.sistem.cron.length})`)
+    for (const r of data.roles) expect(html).toContain(r.nama)
   })
 })

@@ -103,13 +103,27 @@ function readKanban(file: string) {
   } finally { db.close() }
 }
 
+// Cron jobs mid-run right now: executions ledger rows still 'claimed'/'running' (read-only, best effort).
+function runningJobs(root: string) {
+  const dbs = [path.join(root, 'cron/executions.db'), ...(existsSync(path.join(root, 'profiles')) ? readdirSync(path.join(root, 'profiles')).map((p) => path.join(root, 'profiles', p, 'cron/executions.db')) : [])]
+  const ids = new Map<string, string>()
+  for (const file of dbs.filter(existsSync)) {
+    try {
+      const db = new DatabaseSync(file, { readOnly: true })
+      try { for (const r of db.prepare("SELECT job_id, COALESCE(started_at, claimed_at) AS t FROM executions WHERE status IN ('claimed','running')").all() as unknown as { job_id: string; t: string }[]) ids.set(r.job_id, r.t) } finally { db.close() }
+    } catch { /* ledger busy or absent: treat as not running */ }
+  }
+  return ids
+}
+
 function readCron(root: string) {
+  const running = runningJobs(root)
   const files = [path.join(root, 'cron/jobs.json'), ...(existsSync(path.join(root, 'profiles')) ? readdirSync(path.join(root, 'profiles')).map((p) => path.join(root, 'profiles', p, 'cron/jobs.json')) : [])]
   return files.filter(existsSync).flatMap((file) => {
     const raw = JSON.parse(readFileSync(file, 'utf8')) as unknown
     const profile = file.includes('/profiles/') ? file.split('/profiles/')[1].split('/')[0] : 'default'
     return list<Obj>(Array.isArray(raw) ? raw : (raw as Obj).jobs).map((job) => ({
-      name: str(job.name), profile, schedule: str(job.schedule_display ?? (job.schedule as Obj | undefined)?.display), enabled: job.enabled !== false,
+      id: str(job.id), name: str(job.name), profile, berjalanSejak: running.get(str(job.id)), schedule: str(job.schedule_display ?? (job.schedule as Obj | undefined)?.display), enabled: job.enabled !== false,
       lastStatus: job.last_status ? str(job.last_status) : undefined, lastRun: job.last_run_at ? str(job.last_run_at) : undefined, nextRun: job.next_run_at ? str(job.next_run_at) : undefined,
       script: job.script ? str(job.script) : undefined,
     }))
@@ -199,7 +213,7 @@ export function buildOrgFlow(now = Date.now(), root = hermesRoot(), vault = vaul
       role: role.id, ...metrics, efektivitas: effectiveness(metrics), rataDurasiMenit: durations.length ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length / 60) : null,
       terakhirAktif: lastActivity ? new Date(lastActivity * 1000).toISOString() : null,
       nganggur: !lastActivity || nowSec - lastActivity > idleDays * DAY, batasNganggurHari: idleDays,
-      sedangBekerja: aktif.some((t) => t.status === 'running'), aktif, celah,
+      sedangBekerja: aktif.some((t) => t.status === 'running') || role.pemicu.some((p) => cron.some((c) => c.name === p.job && c.berjalanSejak)), aktif, celah,
       cron: role.pemicu.filter((p) => p.job).map((p) => cron.find((c) => c.name === p.job)).filter(Boolean),
     }
   })

@@ -28,11 +28,11 @@ interface OrgFlowSnapshot {
   roles: Role[]; sops: Sop[]; meja: { id: string; nama: string }[]; aktor: Aktor[]; kasus: { id: string; judul: string; sop: string[] }[]; dueDiligence: Temuan[]
   live: Live[]; tiketTakTerpetakan: { id: string; judul: string; status: string; persona?: string }[]
   drift: { tidakDiSop: { dari: string; ke: string; jumlah: number }[]; belumPernahTerjadi: { dari: string; ke: string }[]; personaTanpaKontrak: string[]; aliasTanpaKontrak: { alias: string; dipakaiOleh: string }[]; sopRoleTakDikenal: { sop: string; langkah: string; role: string }[]; totalTautanKanban: number }
-  sistem: { profiles: string[]; cron: { name: string; profile: string; schedule: string; enabled: boolean; lastStatus?: string; lastRun?: string }[]; cronTanpaRole: { name: string; profile: string; schedule: string }[]; kanbanTersedia: boolean; vault: string }
+  sistem: { profiles: string[]; cron: { name: string; profile: string; schedule: string; enabled: boolean; lastStatus?: string; lastRun?: string; nextRun?: string; berjalanSejak?: string }[]; cronTanpaRole: { name: string; profile: string; schedule: string }[]; kanbanTersedia: boolean; vault: string }
   fetchedAt: string
 }
 
-const TABS = ['Peta Organisasi', 'Alur SOP', 'Kasus', 'Kenyataan', 'Due Diligence'] as const
+const TABS = ['Agent & Cron', 'Peta Organisasi', 'Alur SOP', 'Kasus', 'Kenyataan', 'Due Diligence'] as const
 type Tab = typeof TABS[number]
 const STATUS_TONE: Record<string, string> = { ACTIVE: 'good', SEBAGIAN: 'unknown', STANDBY: 'info', BLOCKED: 'bad', DRAFT: 'muted' }
 
@@ -220,6 +220,45 @@ function Cases({ data, look, filters, byMeja, onOpen }: { data: OrgFlowSnapshot;
   </>
 }
 
+// 1 role = 1 profile = 1 agent: who is working now, what each runs on, and which roles have no cron.
+function AgentsCron({ data, look, filters, onOpen }: { data: OrgFlowSnapshot; look: Lookup; filters: Filters; onOpen: (id: string) => void }) {
+  const roles = data.roles.filter((r) => matches(r, filters))
+  const sharers = (p: string) => data.roles.filter((r) => r.runtime === p).length
+  const cronOf = (r: Role) => data.sistem.cron.filter((c) => r.pemicu.some((p) => p.job === c.name))
+  const state = (r: Role) => { const l = look.live.get(r.id)!; return l.sedangBekerja ? 0 : l.aktif.length ? 1 : 2 }
+  const sorted = [...roles].sort((a, b) => state(a) - state(b) || a.nama.localeCompare(b.nama))
+  const noCron = roles.filter((r) => !cronOf(r).length)
+  const own = roles.filter((r) => sharers(r.runtime) === 1).length
+  return <>
+    <div className="of-kpis">
+      <article><span>Sedang bekerja</span><strong>{roles.filter((r) => state(r) === 0).length}</strong><small>tiket running / cron sedang jalan</small></article>
+      <article><span>1 role = 1 profile</span><strong>{own}/{roles.length}</strong><small>profile: {data.sistem.profiles.join(', ')}</small></article>
+      <article><span>Cron job</span><strong>{data.sistem.cron.length}</strong><small>{data.sistem.cron.filter((c) => c.berjalanSejak).length} sedang jalan</small></article>
+      <article><span>Role tanpa cron</span><strong>{noCron.length}</strong><small>hanya jalan saat dipicu</small></article>
+    </div>
+    <section className="of-section"><h2>Agent per role</h2>
+      <table className="log-table of-table"><thead><tr><th>Role</th><th>Aktivitas</th><th>Profile / agent</th><th>Cron</th><th>Terakhir aktif</th></tr></thead>
+        <tbody>{sorted.map((r) => { const l = look.live.get(r.id)!; const jobs = cronOf(r); const st = state(r); return <tr key={r.id}>
+          <td><button type="button" className="of-link" onClick={() => onOpen(r.id)}>{r.nama}</button><small>{r.jabatan}</small></td>
+          <td><span className={`badge ${['good', 'info', 'muted'][st]}`}>{['bekerja', 'ada tiket', 'diam'][st]}</span>{l.aktif.slice(0, 2).map((t) => <small key={t.id}>{t.status} · {t.judul}</small>)}{jobs.filter((c) => c.berjalanSejak).map((c) => <small key={c.name}>cron jalan: {c.name}</small>)}</td>
+          <td><code>{r.runtime}</code>{sharers(r.runtime) > 1 ? <small className="text-bad">dipakai bersama {sharers(r.runtime) - 1} role lain</small> : <small>profile sendiri</small>}</td>
+          <td>{jobs.length ? jobs.map((c) => <small key={c.name}>{c.name} · <code>{c.schedule}</code></small>) : <span className="muted">— belum ada</span>}</td>
+          <td>{l.terakhirAktif ? formatDateTime(l.terakhirAktif) : 'belum pernah'}</td></tr> })}</tbody></table>
+    </section>
+    <section className="of-section"><h2>Role tanpa cron ({noCron.length})</h2>
+      {noCron.length ? <ul className="of-list">{noCron.map((r) => <li key={r.id}><button type="button" className="of-link" onClick={() => onOpen(r.id)}>{r.nama}</button> <small>{r.jabatan} · dipicu: {r.pemicu.map((p) => p.label || p.jenis).join(', ') || '—'}</small></li>)}</ul> : <p className="muted">Semua role punya cron.</p>}
+    </section>
+    <section className="of-section"><h2>Semua cron job ({data.sistem.cron.length})</h2>
+      <table className="log-table of-table"><thead><tr><th>Cron</th><th>Profile</th><th>Jadwal</th><th>Berikutnya</th><th>Terakhir</th><th>Role</th></tr></thead>
+        <tbody>{[...data.sistem.cron].sort((a, b) => Number(Boolean(b.berjalanSejak)) - Number(Boolean(a.berjalanSejak)) || (a.nextRun ?? '').localeCompare(b.nextRun ?? '')).map((c) => { const users = data.roles.filter((r) => r.pemicu.some((p) => p.job === c.name)); return <tr key={c.profile + c.name}>
+          <td>{c.name}{c.berjalanSejak && <span className="badge good">jalan</span>}{!c.enabled && <small className="text-bad">nonaktif</small>}</td><td>{c.profile}</td><td><code>{c.schedule}</code></td>
+          <td>{c.nextRun ? formatDateTime(c.nextRun) : '—'}</td>
+          <td>{c.lastRun ? formatDateTime(c.lastRun) : '—'} {c.lastStatus && <span className={`badge ${c.lastStatus === 'ok' ? 'good' : 'bad'}`}>{c.lastStatus}</span>}</td>
+          <td>{users.length ? users.map((r) => r.nama).join(', ') : <span className="muted">infrastruktur</span>}</td></tr> })}</tbody></table>
+    </section>
+  </>
+}
+
 function Reality({ data, look, filters, onOpen }: { data: OrgFlowSnapshot; look: Lookup; filters: Filters; onOpen: (id: string) => void }) {
   const rows = data.roles.filter((r) => matches(r, filters)).map((role) => ({ role, live: look.live.get(role.id)! }))
   const working = rows.filter((r) => r.live.aktif.length)
@@ -371,7 +410,7 @@ function RolePanel({ role, data, look, onClose, onOpen }: { role: Role; data: Or
 // ---- Page ----
 export function OrgFlow() {
   const snapshot = usePolling<OrgFlowSnapshot>('/api/orgflow', 30_000)
-  const [tab, setTab] = useState<Tab>('Peta Organisasi')
+  const [tab, setTab] = useState<Tab>('Agent & Cron')
   const [filters, setFilters] = useState<Filters>({ meja: 'all', uang: false, tony: false, status: 'all' })
   const [byMeja, setByMeja] = useState(false)
   const [openRole, setOpenRole] = useState<string>()
@@ -382,7 +421,7 @@ export function OrgFlow() {
   return <OrgFlowView data={data} title={title} snapshot={snapshot} tab={tab} setTab={setTab} filters={filters} setFilters={setFilters} byMeja={byMeja} setByMeja={setByMeja} openRole={openRole} setOpenRole={setOpenRole}/>
 }
 
-function OrgFlowView({ data, title, snapshot, tab, setTab, filters, setFilters, byMeja, setByMeja, openRole, setOpenRole }: {
+export function OrgFlowView({ data, title, snapshot, tab, setTab, filters, setFilters, byMeja, setByMeja, openRole, setOpenRole }: {
   data: OrgFlowSnapshot; title: ReactNode; snapshot: ReturnType<typeof usePolling<OrgFlowSnapshot>>; tab: Tab; setTab: (t: Tab) => void
   filters: Filters; setFilters: (f: Filters) => void; byMeja: boolean; setByMeja: (b: boolean) => void; openRole?: string; setOpenRole: (id?: string) => void
 }) {
@@ -404,6 +443,7 @@ function OrgFlowView({ data, title, snapshot, tab, setTab, filters, setFilters, 
     {tab === 'Peta Organisasi' && <OrgMap data={data} look={look} filters={filters} onOpen={setOpenRole}/>}
     {tab === 'Alur SOP' && <SopFlows data={data} look={look} filters={filters} byMeja={byMeja} onOpen={setOpenRole}/>}
     {tab === 'Kasus' && <Cases data={data} look={look} filters={filters} byMeja={byMeja} onOpen={setOpenRole}/>}
+    {tab === 'Agent & Cron' && <AgentsCron data={data} look={look} filters={filters} onOpen={setOpenRole}/>}
     {tab === 'Kenyataan' && <Reality data={data} look={look} filters={filters} onOpen={setOpenRole}/>}
     {tab === 'Due Diligence' && <DueDiligence data={data} filters={filters}/>}
     {role && <RolePanel role={role} data={data} look={look} onClose={() => setOpenRole(undefined)} onOpen={setOpenRole}/>}

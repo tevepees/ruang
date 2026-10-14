@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.4.0] — 2026-10-14
+
+### Added
+- **Org Flow → tab "Agent & Cron" (default):** status tiap role (bekerja / ada tiket / diam), profile runtime yang dipakai (target 1 role = 1 profile = 1 agent, ditandai bila profile dipakai bersama), cron per role, daftar role tanpa cron, dan tabel semua cron job (jadwal, run berikutnya, status terakhir, role pemakai).
+- **Deteksi cron sedang jalan:** baca read-only ledger `cron/executions.db` (status `claimed`/`running`); role dianggap "bekerja" bila punya tiket running atau cron-nya sedang jalan.
+
+### Changed
+- **Ruang 3D (Office) diarsipkan:** keluar dari menu; halaman utama kini Org Flow. Masih bisa dibuka lewat `#/office`, kode tidak dihapus.
+
 ## [0.3.0] — 2026-10-13
 
 ### Added
