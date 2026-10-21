@@ -2,7 +2,7 @@
 # ponytail: run once, then edit the vault by hand (Obsidian is the source of truth). Re-running replaces the block.
 import re, sys, yaml, pathlib
 
-VAULT = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else '/root/Projects/second-brain-2/vault')
+VAULT = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else str(pathlib.Path.home() / 'Projects/second-brain-2/vault'))
 ROLES = VAULT / '04-ridha-memory/roles'
 
 def cron(job, label): return {'jenis': 'cron', 'job': job, 'label': label}

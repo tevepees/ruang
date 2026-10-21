@@ -7,7 +7,11 @@ import yaml from 'js-yaml'
 import { hermesRoot } from './folders.js'
 
 // ponytail: vault path defaults to this machine's checkout; set RUANG_VAULT elsewhere.
-export const vaultRoot = (env: NodeJS.ProcessEnv = process.env) => env.RUANG_VAULT ?? '/root/Projects/second-brain-2/vault'
+import { homedir } from 'node:os'
+import path from 'node:path'
+
+export const vaultRoot = (env: NodeJS.ProcessEnv = process.env) =>
+  env.RUANG_VAULT ?? path.join(homedir(), 'Projects', 'second-brain-2', 'vault')
 const ROLES_DIR = '04-ridha-memory/roles'
 const SOP_DIR = '03-projects/ridha-dua-keluarga/sop'
 const ORG_DIR = '03-projects/ridha-dua-keluarga/org-flow'

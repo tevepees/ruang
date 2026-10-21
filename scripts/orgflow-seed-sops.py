@@ -2,7 +2,7 @@
 # ponytail: seeded from the SOP prose once; afterwards the vault is edited by hand. Re-running replaces the block.
 import re, sys, yaml, pathlib
 
-VAULT = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else '/root/Projects/second-brain-2/vault')
+VAULT = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else str(pathlib.Path.home() / 'Projects/second-brain-2/vault'))
 SOPS = VAULT / '03-projects/ridha-dua-keluarga/sop'
 
 def s(id, role, label, tipe='task', ke=None, uang=False):
