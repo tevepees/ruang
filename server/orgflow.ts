@@ -8,7 +8,6 @@ import { hermesRoot } from './folders.js'
 
 // ponytail: vault path defaults to this machine's checkout; set RUANG_VAULT elsewhere.
 import { homedir } from 'node:os'
-import path from 'node:path'
 
 export const vaultRoot = (env: NodeJS.ProcessEnv = process.env) =>
   env.RUANG_VAULT ?? path.join(homedir(), 'Projects', 'second-brain-2', 'vault')
