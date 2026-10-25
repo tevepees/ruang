@@ -2,9 +2,9 @@ import { execFile as execFileCallback } from 'node:child_process'
 import { promisify } from 'node:util'
 
 const execFile = promisify(execFileCallback)
-const CACHE_MS = 10_000
+const CACHE_MS = 30_000
 const INSIGHTS_CACHE_MS = 60_000
-const COMMAND_TIMEOUT_MS = 8_000
+const COMMAND_TIMEOUT_MS = 60_000
 const COMMAND_LOG_LIMIT = 100
 const LOG_TAIL_LINES = 200
 
