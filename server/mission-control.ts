@@ -44,6 +44,8 @@ export interface OfficeStation {
   /** Profile lock: `locked` withholds its private data in this browser, `unlocked` is opened with the PIN. */
   privacy?: 'locked' | 'unlocked'
   name: string
+  displayName?: string
+  roleTitle?: string
   role: string
   room: OfficeRoom
   roomPosition: string
@@ -828,6 +830,32 @@ export function agentRoster(runtime: RuntimeSnapshot): AgentSpec[] {
   return agents
 }
 
+export const PROFILE_METADATA: Record<string, { displayName: string; roleTitle: string }> = {
+  default: { displayName: 'Ridha — Butler', roleTitle: 'Personal Butler & Orchestrator' },
+  'general-manager': { displayName: 'Pak Supono — GM', roleTitle: 'General Manager' },
+  'risk-compliance': { displayName: 'Pak Waskito — Risk', roleTitle: 'Risk & Compliance' },
+  bendahara: { displayName: 'Bu Karsinah — Bendahara', roleTitle: 'Bendahara & Akuntansi' },
+  'admin-produksi': { displayName: 'Mas Tukijo — Produksi', roleTitle: 'Admin Produksi Pabrik' },
+  'quality-control': { displayName: 'Yu Ngatemi — QC', roleTitle: 'Quality Control & Mutu' },
+  'checker-packing': { displayName: 'Kang Sukir — Packing', roleTitle: 'Checker & Packing WMS' },
+  'data-entry': { displayName: 'Mbak Wiji — Data Entry', roleTitle: 'Input Lembar Produksi' },
+  'admin-kantor': { displayName: 'Mbak Rini — Dokumen', roleTitle: 'Admin Dokumen Ekspor' },
+  'market-potential': { displayName: 'Pak Hartono — Riset', roleTitle: 'Riset Pasar Ekspor' },
+  'leads-approach': { displayName: 'Pak Sutejo — Outreach', roleTitle: 'Pendekatan Buyer B2B' },
+  'market-intel': { displayName: 'Mas Bejo — Intel', roleTitle: 'Intelijen Harga Pasar' },
+  'editor-market': { displayName: 'Mbak Laras — Editor', roleTitle: 'Editor Konten B2B' },
+  'desain-visual': { displayName: 'Mas Pardi — Desain', roleTitle: 'Desain Visual & Media' },
+  'sosmed-organik': { displayName: 'Mbak Sulastri — Sosmed', roleTitle: 'Sosmed Organik B2B' },
+  'seo-organic': { displayName: 'Joko SEO — Web', roleTitle: 'Spesialis SEO Web' },
+  'sosmed-ads': { displayName: 'Mas Tarjo — Ads', roleTitle: 'Spesialis Iklan Berbayar' },
+  'cs-order': { displayName: 'Mbak Sri — CS', roleTitle: 'CS Order & Inbound WA' },
+  'ekspedisi-tracker': { displayName: 'Mas Slamet — Logistik', roleTitle: 'Ekspedisi & Logistik' },
+  procurement: { displayName: 'Bu Narti — Pengadaan', roleTitle: 'Pengadaan Bahan Baku' },
+  'regulasi-ekspor': { displayName: 'Bu Wahyuni — Regulasi', roleTitle: 'Kepatuhan Regulasi Ekspor' },
+  dhila: { displayName: 'Dhila — AI', roleTitle: 'AI & Research' },
+  'rdk-agent': { displayName: 'RDK Pool — Eksekutor', roleTitle: 'General Worker Pool' },
+}
+
 export const officeRooms = [
   { id: 'Workspace', label: 'Workspace', description: 'Desks, collaboration, and neutral presence positions.' },
   { id: 'Lounge', label: 'Lounge', description: 'A quiet break and idle room.' },
@@ -933,9 +961,12 @@ export function buildOfficeSnapshot(runtime: RuntimeSnapshot, board: TaskBoardSn
     const runtimeProvenance = agent.profile ? `Gateway ${gateway ?? 'Unknown'} (hermes profile list)` : 'OpenCode version availability is not a state signal'
     const managedIdle = state === 'Idle' ? '; Ruang managed-idle placement policy (not agent-reported presence)' : ''
     const liveProvenance = options.agentActivity ? `; live activity (${agent.profile ? `hermes -p ${agent.profile} logs/sessions` : 'agent logs mentioning OpenCode'}, last ${ACTIVITY_WINDOW}): ${!agentActivity || !live.known ? 'unavailable' : live.state !== 'Unknown' ? live.probe?.kind ?? 'active' : 'none'}` : ''
+    const meta = PROFILE_METADATA[agent.id]
     return {
       id: agent.id,
       name: agent.id,
+      displayName: meta?.displayName,
+      roleTitle: meta?.roleTitle,
       role: agent.role,
       ...roomForState(state, index),
       seat: index + 1,

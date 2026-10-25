@@ -28,6 +28,8 @@ export interface OfficeStation {
   /** Profile lock: `locked` withholds its private data in this browser, `unlocked` is opened with the PIN. */
   privacy?: 'locked' | 'unlocked'
   name: string
+  displayName?: string
+  roleTitle?: string
   role: string
   room: OfficeRoom
   roomPosition: string
