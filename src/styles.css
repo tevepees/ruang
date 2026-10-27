@@ -801,3 +801,52 @@ aside.office-panel { background: color-mix(in srgb, var(--surface) 96%, transpar
 .lock-agent { border: 1px solid var(--c-3a463c); border-radius: 4px; cursor: pointer; font-size: 13px; padding: 6px 10px; }
 .lock-agent.active { border-color: var(--accent); color: var(--text); }
 .lock-agent input { accent-color: var(--accent); }
+
+/* Division clusters & meeting rooms in 2D Office */
+.division-clusters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; position: relative; z-index: 4; width: 100%; }
+@media (max-width: 1080px) { .division-clusters { grid-template-columns: 1fr; } }
+.division-cluster { background: rgba(0, 0, 0, 0.32); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px; padding: 10px 12px; position: relative; }
+.division-cluster:nth-child(5) { grid-column: span 2; }
+.division-cluster:nth-child(5) .division-desks { justify-content: center; gap: 18px; }
+@media (max-width: 1080px) { .division-cluster:nth-child(5) { grid-column: span 1; } }
+.division-header { align-items: baseline; display: flex; flex-wrap: wrap; gap: 6px 10px; margin-bottom: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 4px; }
+.division-tag { border-radius: 4px; font-family: ui-monospace, monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; padding: 2px 7px; text-transform: uppercase; color: #fff; }
+.division-title { font-family: ui-monospace, monospace; font-size: 12px; font-weight: 700; letter-spacing: 0.05em; color: var(--text); }
+.division-desc { color: var(--text-muted); font-size: 10px; margin-left: auto; }
+.division-desks { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-end; }
+.division-desks .flow-desk-cell { min-height: 120px; }
+
+.meeting-rooms-row { display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 14px; border-top: 1px dashed rgba(255, 255, 255, 0.14); padding-top: 14px; position: relative; z-index: 4; }
+@media (max-width: 800px) { .meeting-rooms-row { grid-template-columns: 1fr; } }
+.meeting-room-card { background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px; padding: 14px; display: grid; gap: 10px; }
+.meeting-room-head { align-items: center; display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 6px; }
+.meeting-room-head strong { font-family: ui-monospace, monospace; font-size: 12px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--accent); }
+.meeting-room-head small { color: var(--text-muted); font-size: 11px; }
+
+/* 3D Meeting room tags */
+.room-tag-3d {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.9);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  color: #f8fafc;
+  display: inline-flex;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  gap: 6px;
+  letter-spacing: 0.06em;
+  padding: 4px 10px;
+  pointer-events: none;
+  position: absolute;
+  transform: translate(-50%, -100%);
+  white-space: nowrap;
+  z-index: 10;
+}
+.room-tag-3d.boardroom { border-color: rgba(59, 130, 246, 0.6); box-shadow: 0 0 16px rgba(59, 130, 246, 0.25); }
+.room-tag-3d.warroom { border-color: rgba(239, 68, 68, 0.6); box-shadow: 0 0 16px rgba(239, 68, 68, 0.25); }
+.room-tag-title { color: #f8fafc; }
+
+

@@ -14,6 +14,7 @@ import { TaskBoard } from './TaskBoard.tsx'
 import { formatCost } from '../usage.ts'
 import { RelockBar } from '../ProfileLock.tsx'
 import { TokenUsage } from './TokenUsage.tsx'
+import { DIVISION_LIST } from '../divisions.ts'
 
 // The 3D view (three.js) is only downloaded when someone switches to it.
 const Office3D = lazy(() => import('./Office3D.tsx'))
@@ -30,7 +31,11 @@ function webglAvailable(): boolean {
 
 /** 3D unless the viewer chose 2D before (or the browser has no WebGL, handled by the caller). */
 function storedView(): OfficeView {
-  try { return window.localStorage.getItem('mc.officeView') === '2d' ? '2d' : '3d' } catch { return '3d' }
+  try {
+    if (window.location.search.includes('view=2d') || window.location.hash.includes('view=2d')) return '2d'
+    if (window.location.search.includes('view=3d') || window.location.hash.includes('view=3d')) return '3d'
+    return window.localStorage.getItem('mc.officeView') === '2d' ? '2d' : '3d'
+  } catch { return '3d' }
 }
 
 type PanelTab = 'Crew' | 'Stats' | 'Activity'
@@ -203,11 +208,59 @@ export function Office({ dashboard, dashboardPending = false, onNavigate }: { da
       {show3d ? <SceneBoundary fallback={<section className="empty-state"><h2>3D view unavailable</h2><p>The 3D office could not start on this device. Switch back to 2D.</p></section>}><Suspense fallback={<LoadingState message="Loading the 3D office..."/>}><Office3D stations={office?.stations ?? []} onSelect={select3d}/></Suspense></SceneBoundary> : <>{view === '3d' && !webgl && <p className="muted office-note">3D needs WebGL, which this browser does not provide. Showing 2D.</p>}<div className="room-tabs" role="tablist" aria-label="Office rooms">{ROOMS.map((item) => <button role="tab" aria-selected={room === item} className={room === item ? 'active' : ''} onClick={() => setChosenRoom(item)} key={item}>{item} <span className="room-count">{counts[item]}</span></button>)}</div>
         <div className="room-scroll"><section className={`pixel-room flow ${room.toLowerCase()}`} aria-label={`${room} room`}><div className="room-label"><span>{room}</span><small>{room === 'Workspace' ? `${deskCount} HOT DESK${deskCount === 1 ? '' : 'S'} + MEETING ROOM` : 'QUIET BREAK AREA'}</small></div>
           {room === 'Workspace' ? <>
-            <div className="flow-desks">{Array.from({ length: deskCount }, (_, index) => {
-              const atDesk = stations.find((station) => station.seat === index + 1 && station.roomPosition !== 'meeting-area')
-              return <div className="flow-desk-cell" key={index}>{atDesk && stationButton2d(atDesk)}<div className={`ws-desk${atDesk && atDesk.state !== 'Offline' ? ' occupied' : ''}`} aria-hidden="true"><i/></div></div>
-            })}</div>
-            <div className="flow-meeting"><div className="meeting-table" aria-hidden="true"><span>MEETING</span></div><div className="flow-crew">{stations.filter((station) => station.roomPosition === 'meeting-area').map(stationButton2d)}</div></div>
+            <div className="division-clusters">
+              {DIVISION_LIST.map((division) => {
+                const clusterStations = (office?.stations ?? []).filter((s) => division.profiles.includes(s.id) && s.roomPosition !== 'meeting-area')
+                return <section className="division-cluster" key={division.id} style={{ borderColor: `${division.badgeColor}44` }}>
+                  <header className="division-header">
+                    <span className="division-tag" style={{ background: division.badgeColor }}>{division.shortLabel}</span>
+                    <h3 className="division-title">{division.name}</h3>
+                    <span className="division-desc">{division.description}</span>
+                  </header>
+                  <div className="division-desks">
+                    {clusterStations.map((station) => (
+                      <div className="flow-desk-cell" key={station.id}>
+                        {stationButton2d(station)}
+                        <div className={`ws-desk${station.state !== 'Offline' ? ' occupied' : ''}`} aria-hidden="true"><i/></div>
+                      </div>
+                    ))}
+                    {clusterStations.length === 0 && <span className="muted" style={{ fontSize: 11 }}>Semua staf sedang di Lounge / Meeting</span>}
+                  </div>
+                </section>
+              })}
+            </div>
+            <div className="meeting-rooms-row">
+              <section className="meeting-room-card">
+                <header className="meeting-room-head">
+                  <strong>Boardroom (Strategic & Governance)</strong>
+                  <small>Ruang Rapat Direksi & Konsensus A2A</small>
+                </header>
+                <div className="flow-meeting" style={{ border: 'none', padding: '8px 0', justifyContent: 'center' }}>
+                  <div className="meeting-table" aria-hidden="true"><span>BOARDROOM</span></div>
+                  <div className="flow-crew">
+                    {stations.filter((station) => station.roomPosition === 'meeting-area' && ['default', 'general-manager', 'risk-compliance', 'bendahara'].includes(station.id)).map(stationButton2d)}
+                  </div>
+                  {stations.filter((station) => station.roomPosition === 'meeting-area' && ['default', 'general-manager', 'risk-compliance', 'bendahara'].includes(station.id)).length === 0 && (
+                    <span className="muted" style={{ fontSize: 11, fontStyle: 'italic', margin: 'auto' }}>Kapasitas 6 kursi · Standby rapat konsensus</span>
+                  )}
+                </div>
+              </section>
+              <section className="meeting-room-card">
+                <header className="meeting-room-head">
+                  <strong>War Room (Tactical Ops & Sales)</strong>
+                  <small>Ruang Briefing Harian Pabrik, Komersial & Logistik</small>
+                </header>
+                <div className="flow-meeting" style={{ border: 'none', padding: '8px 0', justifyContent: 'center' }}>
+                  <div className="meeting-table" aria-hidden="true" style={{ background: '#234e52' }}><span>WAR ROOM</span></div>
+                  <div className="flow-crew">
+                    {stations.filter((station) => station.roomPosition === 'meeting-area' && !['default', 'general-manager', 'risk-compliance', 'bendahara'].includes(station.id)).map(stationButton2d)}
+                  </div>
+                  {stations.filter((station) => station.roomPosition === 'meeting-area' && !['default', 'general-manager', 'risk-compliance', 'bendahara'].includes(station.id)).length === 0 && (
+                    <span className="muted" style={{ fontSize: 11, fontStyle: 'italic', margin: 'auto' }}>Kapasitas 6 kursi · Standby koordinasi taktis</span>
+                  )}
+                </div>
+              </section>
+            </div>
           </> : <>
             <div className="flow-lounge-props" aria-hidden="true"><div className="pixel-tv"/><div className="lounge-chair"/><div className="lounge-sofa"/><div className="coffee-table"/><div className="lounge-chair"/><div className="pixel-plant"/></div>
             <div className="flow-crew">{stations.map(stationButton2d)}</div>

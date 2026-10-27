@@ -30,6 +30,8 @@ export interface OfficeStation {
   name: string
   displayName?: string
   roleTitle?: string
+  division?: string
+  divisionTitle?: string
   role: string
   room: OfficeRoom
   roomPosition: string

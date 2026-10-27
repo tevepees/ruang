@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { ARCADES, BALCONY, BALCONY_DOOR, BALCONY_TABLE, BATHROOM, BEANBAGS, CARROM, COFFEE_TABLE, ENTRANCE_X, FLAG, FLOOR_HEIGHT, type Floor as FloorNumber, GAME_DOOR, GAME_ROOM, GAME_TV, HAMMOCK, LESEHAN_TABLE, LOUNGE_PARTITION_END_Z, MEETING_DOOR_X, PARTITION_X, PING_PONG, SOFA, STAIRS, STALL_ROTATION, type OfficeLayout, TV, type Vec3 } from '../office3d-layout.ts'
+import { ARCADES, BALCONY, BALCONY_DOOR, BALCONY_TABLE, BATHROOM, BEANBAGS, CARROM, COFFEE_TABLE, ENTRANCE_X, FLAG, FLOOR_HEIGHT, type Floor as FloorNumber, GAME_DOOR, GAME_ROOM, GAME_TV, HAMMOCK, LESEHAN_TABLE, LOUNGE_PARTITION_END_Z, MEETING_DOOR_X, PARTITION_X, PING_PONG, SOFA, STAIRS, STALL_ROTATION, type OfficeLayout, type WarRoomLayout, TV, type Vec3 } from '../office3d-layout.ts'
 import { AcOutdoorUnit, AirConditioner, ArcadeCabinet, Armchair, BathroomFittings, Beanbag, Bed, Bookshelf, CarromTable, ClothesLine, CoffeeTable, FlagPole, FloorCushion, Fridge, GalonDispenser, Gerobak, Hammock, KopiSepeda, LongTable, LowTable, Nightstand, OfficeChair, OfficeLight, PantryCounter, PingPongTable, Plant, Railing, RattanChair, RBox, SideTable, Sofa, Staircase, StreetLamp, StringLights, Television, Tree, Vendor, WallClock, Wardrobe, WaterTank, Whiteboard } from './props.tsx'
 import { asphalt, carpet, grass, pavingStones, tileFloor, woodFloor } from './textures.ts'
 
@@ -79,6 +79,19 @@ function Building({ night, layout }: { night: boolean; layout: OfficeLayout }) {
     <Floor position={[8.35, 0.01, 1.4]} size={[2.3, 5.4]} map={tiles} roughness={0.35}/>
     <Floor position={[4.6, 0.012, -2.9]} size={[4.4, 2.8]} map={rug}/>
     <Floor position={[(layout.meetingRoom.minX + layout.meetingRoom.maxX) / 2, 0.012, (layout.meetingRoom.minZ + layout.meetingRoom.maxZ) / 2]} size={[layout.meetingRoom.maxX - layout.meetingRoom.minX - 0.3, layout.meetingRoom.maxZ - layout.meetingRoom.minZ - 0.3]} map={meetingRug}/>
+    {layout.warRoom && <Floor position={[(layout.warRoom.minX + layout.warRoom.maxX) / 2, 0.012, (layout.warRoom.minZ + layout.warRoom.maxZ) / 2]} size={[layout.warRoom.maxX - layout.warRoom.minX - 0.3, layout.warRoom.maxZ - layout.warRoom.minZ - 0.3]} color="#1b4958"/>}
+    {/* Division zones floor rugs and acrylic dividers */}
+    {layout.divisionZones?.map((zone) => {
+      const width = zone.maxX - zone.minX
+      const depth = zone.maxZ - zone.minZ
+      const cx = (zone.minX + zone.maxX) / 2
+      const cz = (zone.minZ + zone.maxZ) / 2
+      return <group key={zone.id}>
+        <RBox position={[cx, 0.008, cz]} size={[width, 0.006, depth]} radius={0.04} color={zone.color} roughness={0.85}/>
+        <RBox position={[cx, 0.011, zone.maxZ]} size={[width, 0.006, 0.06]} radius={0.01} color={zone.color} emissive={zone.color} emissiveIntensity={0.3}/>
+        <RBox position={[zone.minX, 0.45, cz]} size={[0.04, 0.9, depth - 0.6]} radius={0.02} color="#cfe8ee" opacity={0.25} roughness={0.1}/>
+      </group>
+    })}
     {/* Full-height back and left walls, low walls towards the camera */}
     <Wall from={[minX, minZ]} to={[maxX, minZ]}/>
     <Wall from={[minX, minZ]} to={[minX, maxZ]}/>
@@ -94,6 +107,7 @@ function Building({ night, layout }: { night: boolean; layout: OfficeLayout }) {
     <Wall from={[6.7, maxZ]} to={[maxX, maxZ]} height={0.55}/>
     {/* Meeting room: glass-topped half walls with a door by the aisle, and a planter row by the lounge */}
     <MeetingRoom layout={layout} night={night}/>
+    {layout.warRoom && <WarRoom layout={layout.warRoom} night={night}/>}
     {[1.3, 2.3, 3.3].map((z) => <Plant key={z} position={[0.9, 0, z]} size={0.8}/>)}
     {/* Windows on the back and left walls */}
     {[-7, -3.6, 1.4, 6.6].map((x) => <Window key={x} position={[x, 1.55, minZ + 0.14]} night={night}/>)}
@@ -121,7 +135,7 @@ function Building({ night, layout }: { night: boolean; layout: OfficeLayout }) {
     <AirConditioner position={[TV[0], 2.3, minZ + 0.125]}/>
     <AirConditioner position={[minX + 0.125, 2.3, 2.6]} rotation={Math.PI / 2}/>
     {/* Office lights: suspended cool-white LED bars */}
-    {[...layout.desks.map(([x, , z]): Vec3 => [x, 2.4, z + 0.2]),  [(layout.meetingRoom.table.x1 + layout.meetingRoom.table.x2) / 2, 2.4, layout.meetingRoom.table.z] as Vec3, [COFFEE_TABLE[0], 2.4, COFFEE_TABLE[2] + 0.4] as Vec3, [8.2, 2.4, 1.2] as Vec3].map((position) => <OfficeLight key={position.join(',')} position={position} night={night}/>)}
+    {[...layout.desks.map(([x, , z]): Vec3 => [x, 2.4, z + 0.2]),  [(layout.meetingRoom.table.x1 + layout.meetingRoom.table.x2) / 2, 2.4, layout.meetingRoom.table.z] as Vec3, ...(layout.warRoom ? [[(layout.warRoom.table.x1 + layout.warRoom.table.x2) / 2, 2.4, layout.warRoom.table.z] as Vec3] : []), [COFFEE_TABLE[0], 2.4, COFFEE_TABLE[2] + 0.4] as Vec3, [8.2, 2.4, 1.2] as Vec3].map((position) => <OfficeLight key={position.join(',')} position={position} night={night}/>)}
     <Stairs/>
     <GameRoom night={night}/>
   </group>
@@ -159,6 +173,38 @@ function MeetingRoom({ layout, night }: { layout: OfficeLayout; night: boolean }
       <Television position={[0, 0, 0]}/>
       <RBox position={[0, 0.36, 0.05]} size={[1.6, 0.14, 0.004]} radius={0.004} color="#f4f1ea" emissive="#f4f1ea" emissiveIntensity={night ? 0.8 : 0.3} shadow={false}/>
       {[0.25, 0.45, 0.32, 0.6].map((height, index) => <RBox key={index} position={[-0.45 + index * 0.3, -0.38 + height / 2, 0.05]} size={[0.18, height, 0.004]} radius={0.004} color={['#e9c46a', '#2a9d8f', '#e76f51', '#8fd18a'][index]} emissive={['#e9c46a', '#2a9d8f', '#e76f51', '#8fd18a'][index]} emissiveIntensity={night ? 0.7 : 0.25} shadow={false}/>)}
+      </group>
+    </group>
+    <Whiteboard position={whiteboard} rotation={-Math.PI / 2}/>
+    <Plant position={[maxX - 0.4, 0, maxZ - 0.45]} size={0.8}/>
+  </group>
+}
+
+/** Tactical War Room: smaller conference room for cross-division tactical coordination. */
+function WarRoom({ layout, night }: { layout: WarRoomLayout; night: boolean }) {
+  const { minX, maxX, minZ, maxZ, table, tv, whiteboard, seats } = layout
+  const doorX = (minX + maxX) / 2
+  const door = { from: doorX - 0.45, to: doorX + 0.45 }
+  const chairs = seats.filter((seat) => seat.seated)
+  return <group>
+    {/* Side wall towards boardroom and aisle-side partition */}
+    <Wall from={[maxX, minZ]} to={[maxX, maxZ]} height={0.9}/>
+    <Glass x={maxX} fromZ={minZ} toZ={maxZ} bottom={0.9}/>
+    {minX > -34 && <><Wall from={[minX, minZ]} to={[minX, maxZ]} height={0.9}/><Glass x={minX} fromZ={minZ} toZ={maxZ} bottom={0.9}/></>}
+    <Wall from={[minX, minZ]} to={[door.from, minZ]} height={0.9}/>
+    <Wall from={[door.to, minZ]} to={[maxX, minZ]} height={0.9}/>
+    <GlassAlongX z={minZ} fromX={minX} toX={door.from} bottom={0.9}/>
+    <GlassAlongX z={minZ} fromX={door.to} toX={maxX} bottom={0.9}/>
+    <RBox position={[doorX, WALL_HEIGHT - 0.15, minZ]} size={[0.95, 0.1, 0.12]} radius={0.02} color={WALL_TOP}/>
+    <LongTable position={[(table.x1 + table.x2) / 2, 0, table.z]} length={table.x2 - table.x1}/>
+    {chairs.map(({ position: [x, , z], facing }) => <OfficeChair key={`${x},${z}`} position={[x, 0, z]} rotation={facing}/>)}
+    <group position={[tv[0], 0, tv[2]]} rotation={[0, Math.PI / 2, 0]}>
+      <RBox position={[0, 0.03, 0]} size={[0.9, 0.05, 0.5]} radius={0.02} color="#2a2f33"/>
+      <RBox position={[0, 0.75, -0.08]} size={[0.1, 1.45, 0.08]} radius={0.02} color="#3a3f44" metalness={0.5}/>
+      <group position={[0, 1.45, 0]}>
+        <Television position={[0, 0, 0]}/>
+        <RBox position={[0, 0.36, 0.05]} size={[1.6, 0.14, 0.004]} radius={0.004} color="#f4f1ea" emissive="#f4f1ea" emissiveIntensity={night ? 0.8 : 0.3} shadow={false}/>
+        {[0.35, 0.55, 0.22, 0.7].map((height, index) => <RBox key={index} position={[-0.45 + index * 0.3, -0.38 + height / 2, 0.05]} size={[0.18, height, 0.004]} radius={0.004} color={['#2a9d8f', '#e76f51', '#e9c46a', '#3a86ff'][index]} emissive={['#2a9d8f', '#e76f51', '#e9c46a', '#3a86ff'][index]} emissiveIntensity={night ? 0.7 : 0.25} shadow={false}/>)}
       </group>
     </group>
     <Whiteboard position={whiteboard} rotation={-Math.PI / 2}/>

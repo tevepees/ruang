@@ -97,6 +97,28 @@ const CAMERA_OFFSET_BASE: Vec3 = [-3.9, 15.2, 18.8]
 export interface Placement { position: Vec3; facing: number; seated: boolean; label?: string; pose?: 'lie' | 'floor'; height?: number }
 export interface IdleStop { key: string; label: string; spots: Placement[] }
 
+export interface DivisionZone {
+  id: string
+  name: string
+  shortLabel: string
+  minX: number
+  maxX: number
+  minZ: number
+  maxZ: number
+  color: string
+}
+
+export interface WarRoomLayout {
+  minX: number
+  maxX: number
+  minZ: number
+  maxZ: number
+  table: { x1: number; x2: number; z: number }
+  tv: Vec3
+  whiteboard: Vec3
+  seats: Placement[]
+}
+
 export interface OfficeLayout {
   deskCount: number
   building: { minX: number; maxX: number; minZ: number; maxZ: number }
@@ -111,6 +133,8 @@ export interface OfficeLayout {
   gangCenterX: number
   /** Meeting room in the front of the workspace: a long table (x1..x2) with a TV on a stand at its left end and a whiteboard at its right. */
   meetingRoom: { minX: number; maxX: number; minZ: number; maxZ: number; table: { x1: number; x2: number; z: number }; tv: Vec3; whiteboard: Vec3; seats: Placement[] }
+  warRoom?: WarRoomLayout
+  divisionZones?: DivisionZone[]
   camera: { target: Vec3; offset: Vec3 }
   /** How far the view may be panned (camera target bounds), so the office never leaves the screen. */
   pan: { minX: number; maxX: number; minZ: number; maxZ: number }
@@ -173,6 +197,9 @@ export function createLayout(agentCount: number): OfficeLayout {
   const kopiBike: Vec3 = [-11.9 + shift, 0, 1.6]
   const sceneMinX = minX - 3.7
   const scale = (GAME_ROOM.maxX - sceneMinX) / BASE_SCENE_WIDTH
+  const mainMeeting = meetingRoom(building, deskCount)
+  const tacticalWarRoom = warRoom(building, mainMeeting.minX)
+  const divisionZones = calculateDivisionZones(columns)
   return {
     deskCount, building, desks, beds, baksoCart, kopiBike,
     sideLaneX: -10.15 + shift,
@@ -180,7 +207,9 @@ export function createLayout(agentCount: number): OfficeLayout {
     camera: { target: [(sceneMinX + GAME_ROOM.maxX) / 2 - 0.15, 0.6, 0.2], offset: CAMERA_OFFSET_BASE.map((value) => value * scale) as Vec3 },
     pan: { minX: sceneMinX - 0.3, maxX: 17, minZ: -7, maxZ: 11 },
     idleStops: idleStops(building, baksoCart, kopiBike, beds),
-    meetingRoom: meetingRoom(building, deskCount),
+    meetingRoom: mainMeeting,
+    warRoom: tacticalWarRoom,
+    divisionZones,
   }
 }
 
@@ -190,7 +219,8 @@ export function createLayout(agentCount: number): OfficeLayout {
  * building's left wall: a TV on a stand at the table's left end, a whiteboard at its right.
  */
 function meetingRoom(building: OfficeLayout['building'], agents: number): OfficeLayout['meetingRoom'] {
-  const pairs = Math.max(3, Math.ceil((agents - 1) / 2))
+  const maxBoardroomPairs = building.minX < -18 ? 7 : Math.max(3, Math.ceil((agents - 1) / 2))
+  const pairs = Math.min(maxBoardroomPairs, Math.max(3, Math.ceil((agents - 1) / 2)))
   const x2 = -4.7
   const x1 = Math.max(building.minX + 1.6, x2 - (pairs * MEETING_SEAT_PITCH + 0.5))
   const table = { x1, x2, z: MEETING_TABLE_Z }
@@ -210,6 +240,111 @@ function meetingRoom(building: OfficeLayout['building'], agents: number): Office
   ])
   const presenter: Placement = { position: [whiteboard[0] - 0.5, 0, table.z], facing: -Math.PI / 2, seated: false, label: 'Presenting at the whiteboard' }
   return { minX, maxX: MEETING_ROOM_MAX_X, minZ: MEETING_ROOM_MIN_Z, maxZ: building.maxZ, table, tv: [x1 - 0.75, 0, table.z], whiteboard, seats: [presenter, ...seated, ...standing] }
+}
+
+function warRoom(building: OfficeLayout['building'], mainMeetingMinX: number): WarRoomLayout | undefined {
+  if (building.minX > -18) return undefined
+  const maxX = mainMeetingMinX - 1.2
+  const minX = Math.max(building.minX + 1.6, maxX - 8.5)
+  if (maxX - minX < 4) return undefined
+  const x2 = maxX - 0.8
+  const x1 = minX + 0.8
+  const table = { x1, x2, z: MEETING_TABLE_Z }
+  const whiteboard: Vec3 = [maxX - 0.2, 0, MEETING_TABLE_Z]
+  const tv: Vec3 = [x1 - 0.75, 0, MEETING_TABLE_Z]
+  const columns: number[] = []
+  for (let x = x2 - 0.45; x >= x1 + 0.35; x -= MEETING_SEAT_PITCH) columns.push(x)
+  const seated = columns.flatMap((x): Placement[] => [
+    { position: [x, 0, table.z - 0.7], facing: 0, seated: true },
+    { position: [x, 0, table.z + 0.7], facing: Math.PI, seated: true },
+  ])
+  const standing = columns.flatMap((x): Placement[] => [
+    { position: [x, 0, MEETING_BACK_LANE_Z], facing: 0, seated: false },
+    { position: [x, 0, MEETING_FRONT_LANE_Z], facing: Math.PI, seated: false },
+  ])
+  const presenter: Placement = { position: [whiteboard[0] - 0.5, 0, table.z], facing: -Math.PI / 2, seated: false, label: 'Tactical briefing at War Room' }
+  return { minX, maxX, minZ: MEETING_ROOM_MIN_Z, maxZ: building.maxZ, table, tv, whiteboard, seats: [presenter, ...seated, ...standing] }
+}
+
+function calculateDivisionZones(columns: number): DivisionZone[] {
+  if (columns < 3) return []
+  const colX = (c: number) => DESK_RIGHT_X - c * DESK_PITCH
+  const zones: DivisionZone[] = []
+
+  // 1. Executive Suite (Columns 0..1)
+  const execMaxCol = Math.min(1, columns - 1)
+  zones.push({
+    id: 'executive',
+    name: 'Executive Suite',
+    shortLabel: 'EXEC',
+    minX: colX(execMaxCol) - 1.2,
+    maxX: colX(0) + 1.2,
+    minZ: -4.8,
+    maxZ: -0.2,
+    color: '#1e3a8a',
+  })
+
+  // 2. Pabrik & Operasional (Columns 2..4)
+  if (columns > 2) {
+    const opsMaxCol = Math.min(4, columns - 1)
+    zones.push({
+      id: 'operations',
+      name: 'Pabrik & Operasional',
+      shortLabel: 'OPS',
+      minX: colX(opsMaxCol) - 1.2,
+      maxX: colX(2) + 1.2,
+      minZ: -4.8,
+      maxZ: -0.2,
+      color: '#78350f',
+    })
+  }
+
+  // 3. Komersial & Pasar Ekspor (Columns 5..7)
+  if (columns > 5) {
+    const commMaxCol = Math.min(7, columns - 1)
+    zones.push({
+      id: 'commercial',
+      name: 'Komersial & Pasar Ekspor',
+      shortLabel: 'SALES',
+      minX: colX(commMaxCol) - 1.2,
+      maxX: colX(5) + 1.2,
+      minZ: -4.8,
+      maxZ: -0.2,
+      color: '#064e3b',
+    })
+  }
+
+  // 4. Studio Media & Growth (Columns 8..10)
+  if (columns > 8) {
+    const crMaxCol = Math.min(10, columns - 1)
+    zones.push({
+      id: 'creative',
+      name: 'Studio Media & Growth',
+      shortLabel: 'GROWTH',
+      minX: colX(crMaxCol) - 1.2,
+      maxX: colX(8) + 1.2,
+      minZ: -4.8,
+      maxZ: -0.2,
+      color: '#4c1d95',
+    })
+  }
+
+  // 5. CS & Logistik Hub (Columns 11..12)
+  if (columns > 11) {
+    const supMaxCol = columns - 1
+    zones.push({
+      id: 'support',
+      name: 'CS & Logistik Hub',
+      shortLabel: 'SUPPORT',
+      minX: colX(supMaxCol) - 1.2,
+      maxX: colX(11) + 1.2,
+      minZ: -4.8,
+      maxZ: -0.2,
+      color: '#164e63',
+    })
+  }
+
+  return zones
 }
 
 /** The n-th place in the meeting room (0-based): the whiteboard, then the chairs, then standing room. */

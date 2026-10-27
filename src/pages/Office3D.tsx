@@ -324,11 +324,23 @@ export default function Office3D({ stations, onSelect }: { stations: OfficeStati
       <Lighting theme={theme}/>
       <Environment night={theme === 'dark'} layout={layout} floor={floor}/>
       {floor === 1 && layout.desks.map((position, index) => <WorkDesk key={index} position={position} active={occupiedSeats.has(index + 1)} withChair/>)}
+      {floor === 1 && <object3D ref={register(anchors, 'room-boardroom')} position={[(layout.meetingRoom.minX + layout.meetingRoom.maxX) / 2, 2.5, layout.meetingRoom.minZ + 0.3]}/>}
+      {floor === 1 && layout.warRoom && <object3D ref={register(anchors, 'room-warroom')} position={[(layout.warRoom.minX + layout.warRoom.maxX) / 2, 2.5, layout.warRoom.minZ + 0.3]}/>}
       {stations.map((station) => <Character key={station.id} station={station} placement={placement(station)} layout={layout} floor={floor} onSelect={onSelect} anchor={register(anchors, `agent-${station.id}`)}/>)}
       <LabelProjector anchors={anchors} labels={labels}/>
       <Controls key={layout.deskCount} ref={view} panMode={panMode} keyTarget={keyTarget} layout={layout} elevation={floor === 2 ? FLOOR_HEIGHT : 0}/>
     </Canvas>
     <div className="office-3d-labels">
+      {floor === 1 && <>
+        <div ref={register(labels, 'room-boardroom')} className="room-tag-3d boardroom">
+          <span className="room-tag-icon">🏢</span>
+          <span className="room-tag-title">BOARDROOM</span>
+        </div>
+        {layout.warRoom && <div ref={register(labels, 'room-warroom')} className="room-tag-3d warroom">
+          <span className="room-tag-icon">⚔️</span>
+          <span className="room-tag-title">WAR ROOM</span>
+        </div>}
+      </>}
       {stations.map((station) => {
         const badge = officeStateBadge(station.state)
         const busy = ['Working', 'Reviewing', 'Collaborating'].includes(station.state)

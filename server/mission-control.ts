@@ -46,6 +46,8 @@ export interface OfficeStation {
   name: string
   displayName?: string
   roleTitle?: string
+  division?: string
+  divisionTitle?: string
   role: string
   room: OfficeRoom
   roomPosition: string
@@ -830,32 +832,32 @@ export function agentRoster(runtime: RuntimeSnapshot): AgentSpec[] {
   return agents
 }
 
-export const PROFILE_METADATA: Record<string, { displayName: string; roleTitle: string }> = {
-  default: { displayName: 'Ridha — Butler', roleTitle: 'Personal Butler & Orchestrator' },
-  'general-manager': { displayName: 'Pak Supono — GM', roleTitle: 'General Manager' },
-  'risk-compliance': { displayName: 'Pak Waskito — Risk', roleTitle: 'Risk & Compliance' },
-  bendahara: { displayName: 'Bu Karsinah — Bendahara', roleTitle: 'Bendahara & Akuntansi' },
-  'admin-produksi': { displayName: 'Mas Tukijo — Produksi', roleTitle: 'Admin Produksi Pabrik' },
-  'quality-control': { displayName: 'Yu Ngatemi — QC', roleTitle: 'Quality Control & Mutu' },
-  'checker-packing': { displayName: 'Kang Sukir — Packing', roleTitle: 'Checker & Packing WMS' },
-  'data-entry': { displayName: 'Mbak Wiji — Data Entry', roleTitle: 'Input Lembar Produksi' },
-  'admin-kantor': { displayName: 'Mbak Rini — Dokumen', roleTitle: 'Admin Dokumen Ekspor' },
-  'market-potential': { displayName: 'Pak Hartono — Riset', roleTitle: 'Riset Pasar Ekspor' },
-  'leads-approach': { displayName: 'Pak Sutejo — Outreach', roleTitle: 'Pendekatan Buyer B2B' },
-  'market-intel': { displayName: 'Mas Bejo — Intel', roleTitle: 'Intelijen Harga Pasar' },
-  'editor-market': { displayName: 'Mbak Laras — Editor', roleTitle: 'Editor Konten B2B' },
-  'desain-visual': { displayName: 'Mas Pardi — Desain', roleTitle: 'Desain Visual & Media' },
-  'sosmed-organik': { displayName: 'Mbak Sulastri — Sosmed', roleTitle: 'Sosmed Organik B2B' },
-  'seo-organic': { displayName: 'Joko SEO — Web', roleTitle: 'Spesialis SEO Web' },
-  'sosmed-ads': { displayName: 'Mas Tarjo — Ads', roleTitle: 'Spesialis Iklan Berbayar' },
-  'cs-order': { displayName: 'Mbak Sri — CS', roleTitle: 'CS Order & Inbound WA' },
-  'ekspedisi-tracker': { displayName: 'Mas Slamet — Logistik', roleTitle: 'Ekspedisi & Logistik' },
-  procurement: { displayName: 'Bu Narti — Pengadaan', roleTitle: 'Pengadaan Bahan Baku' },
-  'regulasi-ekspor': { displayName: 'Bu Wahyuni — Regulasi', roleTitle: 'Kepatuhan Regulasi Ekspor' },
-  maintenance: { displayName: 'Pak Taryo — Maintenance', roleTitle: 'Perawatan Mesin Pabrik' },
-  'cs-komplain': { displayName: 'Mas Sabar — Komplain', roleTitle: 'Retur & Keluhan Pelanggan' },
-  dhila: { displayName: 'Dhila — AI', roleTitle: 'AI & Research' },
-  'rdk-agent': { displayName: 'RDK Pool — Eksekutor', roleTitle: 'General Worker Pool' },
+export const PROFILE_METADATA: Record<string, { displayName: string; roleTitle: string; division?: string; divisionTitle?: string }> = {
+  default: { displayName: 'Ridha — Butler', roleTitle: 'Personal Butler & Orchestrator', division: 'executive', divisionTitle: 'Executive Suite' },
+  'general-manager': { displayName: 'Pak Supono — GM', roleTitle: 'General Manager', division: 'executive', divisionTitle: 'Executive Suite' },
+  'risk-compliance': { displayName: 'Pak Waskito — Risk', roleTitle: 'Risk & Compliance', division: 'executive', divisionTitle: 'Executive Suite' },
+  bendahara: { displayName: 'Bu Karsinah — Bendahara', roleTitle: 'Bendahara & Akuntansi', division: 'executive', divisionTitle: 'Executive Suite' },
+  'admin-produksi': { displayName: 'Mas Tukijo — Produksi', roleTitle: 'Admin Produksi Pabrik', division: 'operations', divisionTitle: 'Pabrik & Operasional' },
+  'quality-control': { displayName: 'Yu Ngatemi — QC', roleTitle: 'Quality Control & Mutu', division: 'operations', divisionTitle: 'Pabrik & Operasional' },
+  'checker-packing': { displayName: 'Kang Sukir — Packing', roleTitle: 'Checker & Packing WMS', division: 'operations', divisionTitle: 'Pabrik & Operasional' },
+  'data-entry': { displayName: 'Mbak Wiji — Data Entry', roleTitle: 'Input Lembar Produksi', division: 'operations', divisionTitle: 'Pabrik & Operasional' },
+  'admin-kantor': { displayName: 'Mbak Rini — Dokumen', roleTitle: 'Admin Dokumen Ekspor', division: 'commercial', divisionTitle: 'Komersial & Pasar Ekspor' },
+  'market-potential': { displayName: 'Pak Hartono — Riset', roleTitle: 'Riset Pasar Ekspor', division: 'commercial', divisionTitle: 'Komersial & Pasar Ekspor' },
+  'leads-approach': { displayName: 'Pak Sutejo — Outreach', roleTitle: 'Pendekatan Buyer B2B', division: 'commercial', divisionTitle: 'Komersial & Pasar Ekspor' },
+  'market-intel': { displayName: 'Mas Bejo — Intel', roleTitle: 'Intelijen Harga Pasar', division: 'commercial', divisionTitle: 'Komersial & Pasar Ekspor' },
+  'editor-market': { displayName: 'Mbak Laras — Editor', roleTitle: 'Editor Konten B2B', division: 'creative', divisionTitle: 'Studio Media & Growth' },
+  'desain-visual': { displayName: 'Mas Pardi — Desain', roleTitle: 'Desain Visual & Media', division: 'creative', divisionTitle: 'Studio Media & Growth' },
+  'sosmed-organik': { displayName: 'Mbak Sulastri — Sosmed', roleTitle: 'Sosmed Organik B2B', division: 'creative', divisionTitle: 'Studio Media & Growth' },
+  'seo-organic': { displayName: 'Joko SEO — Web', roleTitle: 'Spesialis SEO Web', division: 'creative', divisionTitle: 'Studio Media & Growth' },
+  'sosmed-ads': { displayName: 'Mas Tarjo — Ads', roleTitle: 'Spesialis Iklan Berbayar', division: 'creative', divisionTitle: 'Studio Media & Growth' },
+  'cs-order': { displayName: 'Mbak Sri — CS', roleTitle: 'CS Order & Inbound WA', division: 'support', divisionTitle: 'CS & Logistik Hub' },
+  'ekspedisi-tracker': { displayName: 'Mas Slamet — Logistik', roleTitle: 'Ekspedisi & Logistik', division: 'support', divisionTitle: 'CS & Logistik Hub' },
+  procurement: { displayName: 'Bu Narti — Pengadaan', roleTitle: 'Pengadaan Bahan Baku', division: 'operations', divisionTitle: 'Pabrik & Operasional' },
+  'regulasi-ekspor': { displayName: 'Bu Wahyuni — Regulasi', roleTitle: 'Kepatuhan Regulasi Ekspor', division: 'commercial', divisionTitle: 'Komersial & Pasar Ekspor' },
+  maintenance: { displayName: 'Pak Taryo — Maintenance', roleTitle: 'Perawatan Mesin Pabrik', division: 'operations', divisionTitle: 'Pabrik & Operasional' },
+  'cs-komplain': { displayName: 'Mas Sabar — Komplain', roleTitle: 'Retur & Keluhan Pelanggan', division: 'support', divisionTitle: 'CS & Logistik Hub' },
+  dhila: { displayName: 'Dhila — AI', roleTitle: 'AI & Research', division: 'support', divisionTitle: 'CS & Logistik Hub' },
+  'rdk-agent': { displayName: 'RDK Pool — Eksekutor', roleTitle: 'General Worker Pool', division: 'support', divisionTitle: 'CS & Logistik Hub' },
 }
 
 export const officeRooms = [
@@ -969,6 +971,8 @@ export function buildOfficeSnapshot(runtime: RuntimeSnapshot, board: TaskBoardSn
       name: agent.id,
       displayName: meta?.displayName,
       roleTitle: meta?.roleTitle,
+      division: meta?.division,
+      divisionTitle: meta?.divisionTitle,
       role: agent.role,
       ...roomForState(state, index),
       seat: index + 1,
