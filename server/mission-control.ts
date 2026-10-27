@@ -852,6 +852,8 @@ export const PROFILE_METADATA: Record<string, { displayName: string; roleTitle: 
   'ekspedisi-tracker': { displayName: 'Mas Slamet — Logistik', roleTitle: 'Ekspedisi & Logistik' },
   procurement: { displayName: 'Bu Narti — Pengadaan', roleTitle: 'Pengadaan Bahan Baku' },
   'regulasi-ekspor': { displayName: 'Bu Wahyuni — Regulasi', roleTitle: 'Kepatuhan Regulasi Ekspor' },
+  maintenance: { displayName: 'Pak Taryo — Maintenance', roleTitle: 'Perawatan Mesin Pabrik' },
+  'cs-komplain': { displayName: 'Mas Sabar — Komplain', roleTitle: 'Retur & Keluhan Pelanggan' },
   dhila: { displayName: 'Dhila — AI', roleTitle: 'AI & Research' },
   'rdk-agent': { displayName: 'RDK Pool — Eksekutor', roleTitle: 'General Worker Pool' },
 }
