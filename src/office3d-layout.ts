@@ -106,6 +106,14 @@ export interface DivisionZone {
   minZ: number
   maxZ: number
   color: string
+  doorX?: number
+}
+
+export interface DeskPlacement {
+  deskPosition: Vec3
+  deskRotation: number
+  seatPosition: Vec3
+  facing: number
 }
 
 export interface WarRoomLayout {
@@ -123,6 +131,7 @@ export interface OfficeLayout {
   deskCount: number
   building: { minX: number; maxX: number; minZ: number; maxZ: number }
   desks: Vec3[]
+  deskPlacements?: DeskPlacement[]
   /** One bed per agent on lantai 2 (y = FLOOR_HEIGHT). */
   beds: Vec3[]
   /** Walking line up the gang (alley) along the left outside wall, between the wall and the carts. */
@@ -179,17 +188,72 @@ function idleStops(building: OfficeLayout['building'], baksoCart: Vec3, kopiBike
   ]
 }
 
+function calculateDeskPlacement(x: number, z: number, rotation: number): DeskPlacement {
+  const sin = Math.sin(rotation)
+  const cos = Math.cos(rotation)
+  const seatX = x - 0.75 * sin
+  const seatZ = z - 0.75 * cos
+  return {
+    deskPosition: [x, 0, z],
+    deskRotation: rotation,
+    seatPosition: [seatX, 0, seatZ],
+    facing: rotation,
+  }
+}
+
+function create25DivisionDeskPlacements(): DeskPlacement[] {
+  return [
+    // 1. Executive Suite (Index 0..3: Ridha, Pak Supono, Pak Waskito, Bu Karsinah)
+    calculateDeskPlacement(-1.8, -3.8, 0),
+    calculateDeskPlacement(-4.8, -3.8, 0),
+    calculateDeskPlacement(-5.0, -2.0, -Math.PI / 2),
+    calculateDeskPlacement(-1.6, -2.0, Math.PI / 2),
+
+    // 2. Pabrik & Operasional (Index 4..9: Tukijo, Ngatemi, Sukir, Wiji, Narti, Taryo)
+    calculateDeskPlacement(-8.6, -3.8, 0),
+    calculateDeskPlacement(-10.6, -3.8, 0),
+    calculateDeskPlacement(-12.6, -3.8, 0),
+    calculateDeskPlacement(-8.6, -1.8, Math.PI),
+    calculateDeskPlacement(-10.6, -1.8, Math.PI),
+    calculateDeskPlacement(-12.6, -1.8, Math.PI),
+
+    // 3. Komersial & Pasar Ekspor (Index 10..14: Hartono, Sutejo, Bejo, Wahyuni, Rini)
+    calculateDeskPlacement(-15.8, -3.8, 0),
+    calculateDeskPlacement(-17.8, -3.8, 0),
+    calculateDeskPlacement(-19.8, -3.8, 0),
+    calculateDeskPlacement(-16.0, -1.8, Math.PI),
+    calculateDeskPlacement(-19.6, -1.8, Math.PI),
+
+    // 4. Studio Media & Growth (Index 15..19: Laras, Pardi, Sulastri, Joko, Tarjo)
+    calculateDeskPlacement(-23.0, -3.8, 0),
+    calculateDeskPlacement(-25.2, -3.8, 0),
+    calculateDeskPlacement(-23.0, -1.8, Math.PI),
+    calculateDeskPlacement(-25.2, -1.8, Math.PI),
+    calculateDeskPlacement(-27.2, -2.8, Math.PI / 2),
+
+    // 5. CS & Logistik Hub (Index 20..24: Sri, Sabar, Slamet, Dhila, Pool)
+    calculateDeskPlacement(-30.2, -3.8, 0),
+    calculateDeskPlacement(-34.0, -3.8, 0),
+    calculateDeskPlacement(-30.2, -1.8, Math.PI),
+    calculateDeskPlacement(-34.0, -1.8, Math.PI),
+    calculateDeskPlacement(-32.1, -2.8, 0),
+  ]
+}
+
 /** The office for a given number of agents: one desk each, and a building wide enough for them. */
 export function createLayout(agentCount: number): OfficeLayout {
   const deskCount = Math.max(1, agentCount)
   const columns = Math.max(MIN_DESK_COLUMNS, Math.ceil(deskCount / DESK_ROWS_Z.length))
+  const is25Crew = deskCount >= 25
+  const divisionPlacements = is25Crew ? create25DivisionDeskPlacements() : undefined
+
   // The back row fills first (right to left), then the front row.
-  const desks: Vec3[] = Array.from({ length: deskCount }, (_, index) => {
+  const desks: Vec3[] = divisionPlacements ? divisionPlacements.map((p) => p.deskPosition) : Array.from({ length: deskCount }, (_, index) => {
     const row = index < columns ? 0 : 1
     const column = row === 0 ? index : index - columns
     return [DESK_RIGHT_X - column * DESK_PITCH, 0, DESK_ROWS_Z[row]]
   })
-  const minX = DESK_RIGHT_X - (columns - 1) * DESK_PITCH - 2.3
+  const minX = is25Crew ? -37.2 : DESK_RIGHT_X - (columns - 1) * DESK_PITCH - 2.3
   const shift = minX - BASE_MIN_X
   const building = { minX, maxX: 9.5, minZ: -5.2, maxZ: 4.2 }
   const beds: Vec3[] = desks.map(([x], index) => [x, FLOOR_HEIGHT, BED_ROWS_Z[index < columns ? 0 : 1]])
@@ -201,7 +265,7 @@ export function createLayout(agentCount: number): OfficeLayout {
   const tacticalWarRoom = warRoom(building, mainMeeting.minX)
   const divisionZones = calculateDivisionZones(columns)
   return {
-    deskCount, building, desks, beds, baksoCart, kopiBike,
+    deskCount, building, desks, deskPlacements: divisionPlacements, beds, baksoCart, kopiBike,
     sideLaneX: -10.15 + shift,
     gangCenterX: -11.4 + shift,
     camera: { target: [(sceneMinX + GAME_ROOM.maxX) / 2 - 0.15, 0.6, 0.2], offset: CAMERA_OFFSET_BASE.map((value) => value * scale) as Vec3 },
@@ -268,6 +332,15 @@ function warRoom(building: OfficeLayout['building'], mainMeetingMinX: number): W
 
 function calculateDivisionZones(columns: number): DivisionZone[] {
   if (columns < 3) return []
+  if (columns >= 11) {
+    return [
+      { id: 'executive', name: 'Executive Suite', shortLabel: 'EXEC', minX: -6.8, maxX: 0.2, minZ: -5.0, maxZ: -0.6, color: '#1e3a8a', doorX: -3.3 },
+      { id: 'operations', name: 'Pabrik & Operasional', shortLabel: 'OPS', minX: -14.0, maxX: -7.0, minZ: -5.0, maxZ: -0.6, color: '#78350f', doorX: -10.5 },
+      { id: 'commercial', name: 'Komersial & Pasar Ekspor', shortLabel: 'SALES', minX: -21.2, maxX: -14.2, minZ: -5.0, maxZ: -0.6, color: '#064e3b', doorX: -17.7 },
+      { id: 'creative', name: 'Studio Media & Growth', shortLabel: 'GROWTH', minX: -28.4, maxX: -21.4, minZ: -5.0, maxZ: -0.6, color: '#4c1d95', doorX: -24.9 },
+      { id: 'support', name: 'CS & Logistik Hub', shortLabel: 'SUPPORT', minX: -35.6, maxX: -28.6, minZ: -5.0, maxZ: -0.6, color: '#164e63', doorX: -32.1 },
+    ]
+  }
   const colX = (c: number) => DESK_RIGHT_X - c * DESK_PITCH
   const zones: DivisionZone[] = []
 
@@ -364,6 +437,10 @@ export function placementFor(station: OfficeStation, layout: OfficeLayout = DEFA
     return { position: [x, y, z], facing: LOUNGE_FACING[seat % LOUNGE_SEATS.length], seated: true }
   }
   if (station.roomPosition === 'meeting-area') return meetingSeat(meetingIndex, layout)
+  if (layout.deskPlacements && layout.deskPlacements[seat % layout.deskPlacements.length]) {
+    const p = layout.deskPlacements[seat % layout.deskPlacements.length]
+    return { position: p.seatPosition, facing: p.facing, seated: station.state === 'Working' || station.state === 'Reviewing' }
+  }
   const [x, y, z] = layout.desks[seat % layout.desks.length]
   return { position: [x, y, z - 0.75], facing: 0, seated: station.state === 'Working' || station.state === 'Reviewing' }
 }

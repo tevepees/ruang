@@ -55,9 +55,9 @@ export function OfficeChair({ position, rotation = 0, color = '#2f3a44' }: { pos
   </Group>
 }
 
-export function WorkDesk({ position, active, withChair = true }: { position: Vec3; active: boolean; withChair?: boolean }) {
+export function WorkDesk({ position, active, withChair = true, rotation = 0 }: { position: Vec3; active: boolean; withChair?: boolean; rotation?: number }) {
   const screen = useMemo(() => screenTexture(active), [active])
-  return <Group position={position}>
+  return <Group position={position} rotation={rotation}>
     <RBox position={[0, 0.74, 0]} size={[1.9, 0.07, 0.95]} radius={0.03} color="#d9c3a0" roughness={0.6}/>
     <RBox position={[-0.9, 0.37, 0]} size={[0.06, 0.72, 0.85]} radius={0.02} color="#e7e2d8"/>
     <RBox position={[0.9, 0.37, 0]} size={[0.06, 0.72, 0.85]} radius={0.02} color="#e7e2d8"/>

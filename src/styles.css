@@ -847,6 +847,8 @@ aside.office-panel { background: color-mix(in srgb, var(--surface) 96%, transpar
 }
 .room-tag-3d.boardroom { border-color: rgba(59, 130, 246, 0.6); box-shadow: 0 0 16px rgba(59, 130, 246, 0.25); }
 .room-tag-3d.warroom { border-color: rgba(239, 68, 68, 0.6); box-shadow: 0 0 16px rgba(239, 68, 68, 0.25); }
+.room-tag-3d.division-zone-tag { background: rgba(10, 15, 30, 0.92); font-size: 10px; padding: 3px 8px; border-width: 1.5px; }
+.room-tag-3d.division-zone-tag .room-tag-title { letter-spacing: 0.08em; font-weight: 800; }
 .room-tag-title { color: #f8fafc; }
 
 

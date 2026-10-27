@@ -323,9 +323,12 @@ export default function Office3D({ stations, onSelect }: { stations: OfficeStati
     <Canvas shadows dpr={[1, 2]} camera={{ position: [-3, 13, 16], fov: 40, near: 0.5, far: 150 }} gl={{ antialias: true }}>
       <Lighting theme={theme}/>
       <Environment night={theme === 'dark'} layout={layout} floor={floor}/>
-      {floor === 1 && layout.desks.map((position, index) => <WorkDesk key={index} position={position} active={occupiedSeats.has(index + 1)} withChair/>)}
+      {floor === 1 && layout.desks.map((position, index) => <WorkDesk key={index} position={position} active={occupiedSeats.has(index + 1)} withChair rotation={layout.deskPlacements?.[index]?.deskRotation ?? 0}/>)}
       {floor === 1 && <object3D ref={register(anchors, 'room-boardroom')} position={[(layout.meetingRoom.minX + layout.meetingRoom.maxX) / 2, 2.5, layout.meetingRoom.minZ + 0.3]}/>}
       {floor === 1 && layout.warRoom && <object3D ref={register(anchors, 'room-warroom')} position={[(layout.warRoom.minX + layout.warRoom.maxX) / 2, 2.5, layout.warRoom.minZ + 0.3]}/>}
+      {floor === 1 && (layout.divisionZones ?? []).map((zone) => (
+        <object3D key={zone.id} ref={register(anchors, `zone-${zone.id}`)} position={[zone.doorX ?? (zone.minX + zone.maxX) / 2, 2.2, zone.maxZ]}/>
+      ))}
       {stations.map((station) => <Character key={station.id} station={station} placement={placement(station)} layout={layout} floor={floor} onSelect={onSelect} anchor={register(anchors, `agent-${station.id}`)}/>)}
       <LabelProjector anchors={anchors} labels={labels}/>
       <Controls key={layout.deskCount} ref={view} panMode={panMode} keyTarget={keyTarget} layout={layout} elevation={floor === 2 ? FLOOR_HEIGHT : 0}/>
@@ -340,6 +343,12 @@ export default function Office3D({ stations, onSelect }: { stations: OfficeStati
           <span className="room-tag-icon">⚔️</span>
           <span className="room-tag-title">WAR ROOM</span>
         </div>}
+        {(layout.divisionZones ?? []).map((zone) => (
+          <div key={zone.id} ref={register(labels, `zone-${zone.id}`)} className={`room-tag-3d division-zone-tag zone-${zone.id}`} style={{ borderColor: `${zone.color}bb`, boxShadow: `0 0 14px ${zone.color}44` }}>
+            <span className="room-tag-icon">🏛️</span>
+            <span className="room-tag-title">{zone.name.toUpperCase()}</span>
+          </div>
+        ))}
       </>}
       {stations.map((station) => {
         const badge = officeStateBadge(station.state)

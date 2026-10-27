@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { ARCADES, BALCONY, BALCONY_DOOR, BALCONY_TABLE, BATHROOM, BEANBAGS, CARROM, COFFEE_TABLE, ENTRANCE_X, FLAG, FLOOR_HEIGHT, type Floor as FloorNumber, GAME_DOOR, GAME_ROOM, GAME_TV, HAMMOCK, LESEHAN_TABLE, LOUNGE_PARTITION_END_Z, MEETING_DOOR_X, PARTITION_X, PING_PONG, SOFA, STAIRS, STALL_ROTATION, type OfficeLayout, type WarRoomLayout, TV, type Vec3 } from '../office3d-layout.ts'
+import { ARCADES, BALCONY, BALCONY_DOOR, BALCONY_TABLE, BATHROOM, BEANBAGS, CARROM, COFFEE_TABLE, ENTRANCE_X, FLAG, FLOOR_HEIGHT, type Floor as FloorNumber, GAME_DOOR, GAME_ROOM, GAME_TV, HAMMOCK, LESEHAN_TABLE, LOUNGE_PARTITION_END_Z, MEETING_DOOR_X, PARTITION_X, PING_PONG, SOFA, STAIRS, STALL_ROTATION, type DivisionZone, type OfficeLayout, type WarRoomLayout, TV, type Vec3 } from '../office3d-layout.ts'
 import { AcOutdoorUnit, AirConditioner, ArcadeCabinet, Armchair, BathroomFittings, Beanbag, Bed, Bookshelf, CarromTable, ClothesLine, CoffeeTable, FlagPole, FloorCushion, Fridge, GalonDispenser, Gerobak, Hammock, KopiSepeda, LongTable, LowTable, Nightstand, OfficeChair, OfficeLight, PantryCounter, PingPongTable, Plant, Railing, RattanChair, RBox, SideTable, Sofa, Staircase, StreetLamp, StringLights, Television, Tree, Vendor, WallClock, Wardrobe, WaterTank, Whiteboard } from './props.tsx'
 import { asphalt, carpet, grass, pavingStones, tileFloor, woodFloor } from './textures.ts'
 
@@ -67,6 +67,66 @@ function GameRoom({ night }: { night: boolean }) {
   </group>
 }
 
+function DivisionPod({ zone, night }: { zone: DivisionZone; night: boolean }) {
+  const width = zone.maxX - zone.minX
+  const depth = zone.maxZ - zone.minZ
+  const cx = (zone.minX + zone.maxX) / 2
+  const cz = (zone.minZ + zone.maxZ) / 2
+  const doorX = zone.doorX ?? cx
+  const doorHalfWidth = 0.65
+  const leftW = Math.max(0.1, doorX - doorHalfWidth - zone.minX)
+  const rightW = Math.max(0.1, zone.maxX - (doorX + doorHalfWidth))
+  const leftCx = (zone.minX + (doorX - doorHalfWidth)) / 2
+  const rightCx = (doorX + doorHalfWidth + zone.maxX) / 2
+
+  return <group key={zone.id}>
+    {/* 1. Plush Rug with Division Tint */}
+    <RBox position={[cx, 0.008, cz]} size={[width - 0.15, 0.007, depth - 0.15]} radius={0.04} color={zone.color} roughness={0.85}/>
+    <RBox position={[cx, 0.012, cz]} size={[width - 0.05, 0.004, depth - 0.05]} radius={0.02} color="#1e293b" roughness={0.9}/>
+
+    {/* 2. Side Dividing Partition Wall (at minX) */}
+    <RBox position={[zone.minX, 0.45, cz]} size={[0.08, 0.9, depth - 0.2]} radius={0.02} color="#272f3d" roughness={0.7}/>
+    <RBox position={[zone.minX, 1.15, cz]} size={[0.03, 0.5, depth - 0.3]} radius={0.01} color="#94a3b8" opacity={0.3} roughness={0.1} shadow={false}/>
+    <RBox position={[zone.minX, 0.91, cz]} size={[0.09, 0.03, depth - 0.2]} radius={0.01} color={zone.color} emissive={zone.color} emissiveIntensity={0.4}/>
+
+    {/* 3. Front Partition Wall facing Corridor with doorway */}
+    <RBox position={[leftCx, 0.45, zone.maxZ]} size={[leftW, 0.9, 0.06]} radius={0.02} color="#272f3d" roughness={0.7}/>
+    <RBox position={[leftCx, 0.91, zone.maxZ]} size={[leftW, 0.03, 0.07]} radius={0.01} color={zone.color} emissive={zone.color} emissiveIntensity={0.4}/>
+    <RBox position={[rightCx, 0.45, zone.maxZ]} size={[rightW, 0.9, 0.06]} radius={0.02} color="#272f3d" roughness={0.7}/>
+    <RBox position={[rightCx, 0.91, zone.maxZ]} size={[rightW, 0.03, 0.07]} radius={0.01} color={zone.color} emissive={zone.color} emissiveIntensity={0.4}/>
+
+    {/* Doorway Arch Header & Division Neon/Emissive Bar */}
+    <RBox position={[doorX, 2.1, zone.maxZ]} size={[doorHalfWidth * 2 + 0.2, 0.08, 0.08]} radius={0.02} color="#1e293b"/>
+    <RBox position={[doorX, 2.18, zone.maxZ + 0.02]} size={[1.1, 0.14, 0.04]} radius={0.02} color="#0f172a"/>
+    <RBox position={[doorX, 2.18, zone.maxZ + 0.04]} size={[1.0, 0.10, 0.02]} radius={0.01} color={zone.color} emissive={zone.color} emissiveIntensity={0.5}/>
+
+    {/* 4. Pod Specific Accents & Greenery */}
+    <Plant position={[zone.maxX - 0.4, 0, zone.maxZ - 0.35]} size={0.65}/>
+    {zone.id === 'executive' && <>
+      <Bookshelf position={[zone.maxX - 0.4, 0, zone.minZ + 0.8]} rotation={-Math.PI / 2}/>
+      <WallClock position={[cx, 2.35, zone.minZ + 0.14]}/>
+    </>}
+    {zone.id === 'operations' && <>
+      <Whiteboard position={[zone.minX + 0.2, 1.4, cz]}/>
+      <AirConditioner position={[cx, 2.3, zone.minZ + 0.125]}/>
+    </>}
+    {zone.id === 'commercial' && <>
+      <Television position={[cx, 1.4, zone.minZ + 0.16]}/>
+      <RBox position={[cx, 0.35, zone.minZ + 0.2]} size={[1.6, 0.7, 0.3]} radius={0.02} color="#334155"/>
+    </>}
+    {zone.id === 'creative' && <>
+      <Whiteboard position={[zone.minX + 0.2, 1.4, cz]}/>
+      <Plant position={[zone.minX + 0.4, 0, zone.minZ + 0.5]} size={0.7}/>
+    </>}
+    {zone.id === 'support' && <>
+      <GalonDispenser position={[zone.maxX - 0.4, 0, zone.minZ + 0.6]} rotation={-Math.PI / 2}/>
+    </>}
+
+    {/* Center ambient light per pod */}
+    <OfficeLight position={[cx, 2.4, cz]} night={night}/>
+  </group>
+}
+
 function Building({ night, layout }: { night: boolean; layout: OfficeLayout }) {
   const { minX, maxX, minZ, maxZ } = layout.building
   const wood = useMemo(() => woodFloor([4, 4]), [])
@@ -80,18 +140,8 @@ function Building({ night, layout }: { night: boolean; layout: OfficeLayout }) {
     <Floor position={[4.6, 0.012, -2.9]} size={[4.4, 2.8]} map={rug}/>
     <Floor position={[(layout.meetingRoom.minX + layout.meetingRoom.maxX) / 2, 0.012, (layout.meetingRoom.minZ + layout.meetingRoom.maxZ) / 2]} size={[layout.meetingRoom.maxX - layout.meetingRoom.minX - 0.3, layout.meetingRoom.maxZ - layout.meetingRoom.minZ - 0.3]} map={meetingRug}/>
     {layout.warRoom && <Floor position={[(layout.warRoom.minX + layout.warRoom.maxX) / 2, 0.012, (layout.warRoom.minZ + layout.warRoom.maxZ) / 2]} size={[layout.warRoom.maxX - layout.warRoom.minX - 0.3, layout.warRoom.maxZ - layout.warRoom.minZ - 0.3]} color="#1b4958"/>}
-    {/* Division zones floor rugs and acrylic dividers */}
-    {layout.divisionZones?.map((zone) => {
-      const width = zone.maxX - zone.minX
-      const depth = zone.maxZ - zone.minZ
-      const cx = (zone.minX + zone.maxX) / 2
-      const cz = (zone.minZ + zone.maxZ) / 2
-      return <group key={zone.id}>
-        <RBox position={[cx, 0.008, cz]} size={[width, 0.006, depth]} radius={0.04} color={zone.color} roughness={0.85}/>
-        <RBox position={[cx, 0.011, zone.maxZ]} size={[width, 0.006, 0.06]} radius={0.01} color={zone.color} emissive={zone.color} emissiveIntensity={0.3}/>
-        <RBox position={[zone.minX, 0.45, cz]} size={[0.04, 0.9, depth - 0.6]} radius={0.02} color="#cfe8ee" opacity={0.25} roughness={0.1}/>
-      </group>
-    })}
+    {/* Division zone architectural pods */}
+    {layout.divisionZones?.map((zone) => <DivisionPod key={zone.id} zone={zone} night={night}/>)}
     {/* Full-height back and left walls, low walls towards the camera */}
     <Wall from={[minX, minZ]} to={[maxX, minZ]}/>
     <Wall from={[minX, minZ]} to={[minX, maxZ]}/>
@@ -110,13 +160,10 @@ function Building({ night, layout }: { night: boolean; layout: OfficeLayout }) {
     {layout.warRoom && <WarRoom layout={layout.warRoom} night={night}/>}
     {[1.3, 2.3, 3.3].map((z) => <Plant key={z} position={[0.9, 0, z]} size={0.8}/>)}
     {/* Windows on the back and left walls */}
-    {[-7, -3.6, 1.4, 6.6].map((x) => <Window key={x} position={[x, 1.55, minZ + 0.14]} night={night}/>)}
+    {[-34, -27, -20, -13, -7, -3.6, 1.4, 6.6].filter((x) => x > minX + 1.2).map((x) => <Window key={x} position={[x, 1.55, minZ + 0.14]} night={night}/>)}
     {[-3].map((z) => <group key={z} rotation={[0, Math.PI / 2, 0]} position={[minX + 0.14, 1.55, z]}><Window position={[0, 0, 0]} width={1.6} night={night}/></group>)}
-    {/* Workspace */}
-    <Bookshelf position={[minX + 0.35, 0, -0.9]} rotation={Math.PI / 2}/>
-    <Plant position={[minX + 0.5, 0, -4.6]}/>
-    <Plant position={[-0.4, 0, -4.7]} size={0.9}/>
-    <WallClock position={[-3.6, 2.35, minZ + 0.14]}/>
+    {/* Corridor greenery */}
+    {[-3.5, -10.5, -17.5, -24.5, -31.5].filter((x) => x > minX + 2).map((x) => <Plant key={x} position={[x, 0, 0.2]} size={0.65}/>)}
     {/* Lounge */}
     <Sofa position={SOFA} rotation={Math.PI}/>
     {/* Armchairs sit exactly behind the lounge seats agents use (LOUNGE_SEATS 2 and 3) */}
