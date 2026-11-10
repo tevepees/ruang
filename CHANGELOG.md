@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-11-10
+
+### Added
+- `docs/PRD.md` (rev. 1): PRD ringkas sesuai kondisi kode; mencatat prinsip read-only dan utang CHANGELOG.
+
 ## [0.4.0] — 2026-10-14
 
 ### Added
